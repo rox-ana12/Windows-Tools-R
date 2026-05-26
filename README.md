@@ -1,4 +1,4 @@
-# Windows Tools
+# Windows Tools R
 
 A lightweight native Windows app that gives you quick access to system information and useful tweaks — no installation required (portable version available).
 

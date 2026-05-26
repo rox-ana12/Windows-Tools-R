@@ -44,7 +44,7 @@ function Sidebar({
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1>Windows Tools</h1>
+        <h1>Windows Tools R</h1>
         <span>System Utility</span>
       </div>
       <nav className="sidebar-nav">
@@ -221,7 +221,7 @@ function About() {
       <p className="page-subtitle">About this application</p>
       <div className="about-content">
         <div className="section">
-          <h2>Windows Tools</h2>
+          <h2>Windows Tools R</h2>
           <p>
             A native Windows utility built with Rust and React, providing quick access to
             system information and useful Windows tweaks in a modern interface.
