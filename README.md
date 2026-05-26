@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# Windows Tools
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A lightweight native Windows app that gives you quick access to system information and useful tweaks — no installation required (portable version available).
 
-Currently, two official plugins are available:
+## Download
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Go to the [Releases page](https://github.com/rox-ana12/Windows-Tools-R/releases) and download the latest version.
 
-## React Compiler
+You have three options:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| File | What it does |
+|------|-------------|
+| `Windows Tools_*.x64-setup.exe` | Installer (recommended) |
+| `Windows Tools_*.x64_en-US.msi` | Windows Installer package |
+| `app.exe` | Portable version — just double-click to run, no install needed |
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Dashboard
+View your system information at a glance: OS version, CPU, memory (RAM), and disk usage.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Tools
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Classic Context Menu** — Switch between the Windows 11 modern right-click menu and the classic Windows 10 style. Changes take effect immediately (Explorer restarts automatically).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+**IPConfig** — Run the `ipconfig` network command and see the full output inside the app.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+**Installed Apps Report** — Generate an HTML file with a complete list of all installed applications (name, version, publisher). You choose where to save it.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### About
+App information, tech stack, and current version.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Theme
+Toggle between dark and light mode using the button in the top-right corner. Your preference is saved automatically.
+
+## How to use
+
+1. Launch the app
+2. Use the sidebar on the left to navigate between Dashboard, Tools, and About
+3. In **Tools**, click buttons to perform actions:
+   - **CLASSIC / MODERN** — toggles the context menu style
+   - **Run** under IPConfig — displays network configuration
+   - **Generate** under Installed Apps Report — choose a location and save the report
+
+## Requirements
+
+- Windows 10 or Windows 11
+- 64-bit system
