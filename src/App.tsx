@@ -110,6 +110,7 @@ function Tools() {
   const [ipOutput, setIpOutput] = useState("");
   const [ipRunning, setIpRunning] = useState(false);
   const [reportStatus, setReportStatus] = useState("");
+  const [cleanupMsg, setCleanupMsg] = useState("");
 
   useEffect(() => {
     invoke<ContextMenuState>("get_context_menu_state").then((state) => {
@@ -143,6 +144,16 @@ function Tools() {
       setIpOutput("Error: " + String(e));
       setIpRunning(false);
     });
+  };
+
+  const runCleanup = async (action: string) => {
+    setCleanupMsg("Running...");
+    try {
+      const msg = await invoke<string>(action);
+      setCleanupMsg(msg);
+    } catch (e) {
+      setCleanupMsg("Error: " + String(e));
+    }
   };
 
   const generateReport = async () => {
@@ -203,6 +214,19 @@ function Tools() {
           </button>
         </div>
         {reportStatus && <div className={"action-banner" + (reportStatus.startsWith("Error") ? " error" : " info")} style={{ marginTop: "12px", marginBottom: 0 }}>{reportStatus}</div>}
+      </div>
+      <div className="tools-card">
+        <div>
+          <h3>System Cleanup</h3>
+          <p>Free up disk space by cleaning temporary and unnecessary files</p>
+        </div>
+        <div style={{ display: "flex", gap: "10px", marginTop: "16px", flexWrap: "wrap" }}>
+          <button className="toggle-btn" onClick={() => runCleanup("empty_recycle_bin")}>Empty Recycle Bin</button>
+          <button className="toggle-btn" onClick={() => runCleanup("clean_temp_files")}>Clean Temp Files</button>
+          <button className="toggle-btn" onClick={() => runCleanup("clean_prefetch")}>Clean Prefetch</button>
+          <button className="toggle-btn" onClick={() => runCleanup("run_disk_cleanup")}>Disk Cleanup C:</button>
+        </div>
+        {cleanupMsg && <div className={"action-banner" + (cleanupMsg.startsWith("Error") ? " error" : " info")} style={{ marginTop: "12px", marginBottom: 0 }}>{cleanupMsg}</div>}
       </div>
     </div>
   );

@@ -27,6 +27,12 @@ View your system information at a glance: OS version, CPU, memory (RAM), and dis
 
 **Installed Apps Report** — Generate an HTML file with a complete list of all installed applications (name, version, publisher). You choose where to save it.
 
+**System Cleanup** — Free up disk space:
+- **Empty Recycle Bin** — empties the Recycle Bin
+- **Clean Temp Files** — removes temporary files from your user temp folder (admin rights may be needed for system temp)
+- **Clean Prefetch** — removes Windows Prefetch files (requires admin)
+- **Disk Cleanup C:** — launches the built-in Windows Disk Cleanup tool for drive C:
+
 ### About
 App information, tech stack, and current version.
 

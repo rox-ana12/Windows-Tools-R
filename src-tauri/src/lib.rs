@@ -147,6 +147,67 @@ fn generate_apps_report(path: String) -> Result<(), String> {
     Ok(())
 }
 
+fn delete_files_in_dir(path: &str) -> Result<usize, String> {
+    let dir = std::path::Path::new(path);
+    if !dir.exists() { return Ok(0); }
+    let mut count = 0;
+    for entry in fs::read_dir(dir).map_err(|e| format!("Cannot read {}: {}", path, e))? {
+        let entry = entry.map_err(|e| format!("Entry error: {}", e))?;
+        let p = entry.path();
+        if p.is_dir() {
+            let _ = fs::remove_dir_all(&p);
+        } else {
+            let _ = fs::remove_file(&p);
+        }
+        count += 1;
+    }
+    Ok(count)
+}
+
+#[tauri::command]
+fn empty_recycle_bin() -> Result<String, String> {
+    let _ = Command::new("powershell")
+        .args(["-Command", "(New-Object -ComObject Shell.Application).Namespace(0xa).Items() | ForEach-Object { Remove-Item $_.Path -Recurse -Force -ErrorAction SilentlyContinue }"])
+        .output();
+    Ok("Recycle Bin emptied".into())
+}
+
+#[tauri::command]
+fn clean_temp_files() -> Result<String, String> {
+    let mut total = 0;
+    let temp = std::env::var("TEMP").map_err(|_| "TEMP not set".to_string())?;
+    total += delete_files_in_dir(&temp)?;
+    let sys_temp = r"C:\Windows\Temp";
+    if std::path::Path::new(sys_temp).exists() {
+        match delete_files_in_dir(sys_temp) {
+            Ok(n) => total += n,
+            Err(_) => {}, // skip if no permission
+        }
+    }
+    Ok(format!("Cleaned {} temporary files", total))
+}
+
+#[tauri::command]
+fn clean_prefetch() -> Result<String, String> {
+    let path = r"C:\Windows\Prefetch";
+    if !std::path::Path::new(path).exists() {
+        return Ok("Prefetch folder not found".into());
+    }
+    match delete_files_in_dir(path) {
+        Ok(count) => Ok(format!("Cleaned {} Prefetch files", count)),
+        Err(_) => Err("Access denied. Run as administrator to clean Prefetch.".into()),
+    }
+}
+
+#[tauri::command]
+fn run_disk_cleanup() -> Result<String, String> {
+    Command::new("cleanmgr.exe")
+        .args(["/d", "C:"])
+        .spawn()
+        .map_err(|e| format!("Failed to launch Disk Cleanup: {}", e))?;
+    Ok("Disk Cleanup launched".into())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -167,6 +228,10 @@ pub fn run() {
             toggle_context_menu,
             run_ipconfig,
             generate_apps_report,
+            empty_recycle_bin,
+            clean_temp_files,
+            clean_prefetch,
+            run_disk_cleanup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
