@@ -5,6 +5,9 @@ use serde::Deserialize;
 use sysinfo::{Disks, System};
 use winreg::enums::*;
 use winreg::RegKey;
+use std::os::windows::process::CommandExt;
+
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 #[derive(Serialize)]
 pub struct SystemInfo {
@@ -21,8 +24,65 @@ pub struct SystemInfo {
 }
 
 #[derive(Serialize)]
-pub struct ContextMenuState {
-    pub classic_enabled: bool,
+pub struct InstallResult {
+    pub success: bool,
+    pub message: String,
+    pub installed: bool,
+}
+
+fn winget_cmd() -> Command {
+    let mut cmd = Command::new("winget");
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd
+}
+
+#[tauri::command]
+fn install_app(winget_id: String, app_name: String) -> InstallResult {
+    let result = winget_cmd()
+        .args([
+            "install", "--id", &winget_id, "-e", "-h",
+            "--accept-source-agreements", "--accept-package-agreements"
+        ])
+        .output();
+
+    match result {
+        Ok(out) => {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let combined = format!("{}\n{}", stdout, stderr).to_lowercase();
+            let already_installed = combined.contains("0x8a150019") || combined.contains("already installed");
+
+            if out.status.success() || already_installed {
+                InstallResult {
+                    success: true,
+                    message: if already_installed { format!("{} already installed", app_name) } else { format!("{} installed", app_name) },
+                    installed: true,
+                }
+            } else {
+                InstallResult {
+                    success: false,
+                    message: format!("Install failed: {}", combined.trim()),
+                    installed: false,
+                }
+            }
+        }
+        Err(e) => InstallResult {
+            success: false,
+            message: format!("Error: {}", e),
+            installed: false,
+        },
+    }
+}
+
+#[tauri::command]
+fn uninstall_app(winget_id: String, app_name: String) -> InstallResult {
+    let _ = winget_cmd()
+        .args([
+            "uninstall", "--id", &winget_id, "-e",
+            "--accept-source-agreements"
+        ])
+        .output();
+    InstallResult { success: true, message: format!("{} uninstall launched", app_name), installed: true }
 }
 
 #[tauri::command]
@@ -60,13 +120,16 @@ fn get_system_info() -> SystemInfo {
     }
 }
 
+#[derive(Serialize)]
+pub struct ContextMenuState {
+    pub classic_enabled: bool,
+}
+
 #[tauri::command]
 fn get_context_menu_state() -> ContextMenuState {
     let key_path = r"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32";
     let hkcu = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
-
     let classic = hkcu.open_subkey(key_path).is_ok();
-
     ContextMenuState { classic_enabled: classic }
 }
 
@@ -76,11 +139,9 @@ fn run_ipconfig() -> Result<String, String> {
         .output()
         .map_err(|e| format!("Failed to run ipconfig: {}", e))?;
     if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        Ok(stdout)
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
     } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        Err(format!("ipconfig failed: {}", stderr))
+        Err(format!("ipconfig failed: {}", String::from_utf8_lossy(&output.stderr)))
     }
 }
 
@@ -88,17 +149,14 @@ fn run_ipconfig() -> Result<String, String> {
 fn toggle_context_menu(classic: bool) -> Result<(), String> {
     let key_path = r"Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32";
     let hkcu = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER);
-
     if classic {
         let (subkey, _) = hkcu.create_subkey(key_path).map_err(|e| e.to_string())?;
         subkey.set_value("", &"").map_err(|e| e.to_string())?;
     } else {
         let _ = hkcu.delete_subkey_all(key_path);
     }
-
     let _ = Command::new("taskkill").args(["/f", "/im", "explorer.exe"]).status();
     let _ = Command::new("explorer.exe").spawn();
-
     Ok(())
 }
 
@@ -154,11 +212,7 @@ fn delete_files_in_dir(path: &str) -> Result<usize, String> {
     for entry in fs::read_dir(dir).map_err(|e| format!("Cannot read {}: {}", path, e))? {
         let entry = entry.map_err(|e| format!("Entry error: {}", e))?;
         let p = entry.path();
-        if p.is_dir() {
-            let _ = fs::remove_dir_all(&p);
-        } else {
-            let _ = fs::remove_file(&p);
-        }
+        if p.is_dir() { let _ = fs::remove_dir_all(&p); } else { let _ = fs::remove_file(&p); }
         count += 1;
     }
     Ok(count)
@@ -179,10 +233,7 @@ fn clean_temp_files() -> Result<String, String> {
     total += delete_files_in_dir(&temp)?;
     let sys_temp = r"C:\Windows\Temp";
     if std::path::Path::new(sys_temp).exists() {
-        match delete_files_in_dir(sys_temp) {
-            Ok(n) => total += n,
-            Err(_) => {}, // skip if no permission
-        }
+        if let Ok(n) = delete_files_in_dir(sys_temp) { total += n; }
     }
     Ok(format!("Cleaned {} temporary files", total))
 }
@@ -190,9 +241,7 @@ fn clean_temp_files() -> Result<String, String> {
 #[tauri::command]
 fn clean_prefetch() -> Result<String, String> {
     let path = r"C:\Windows\Prefetch";
-    if !std::path::Path::new(path).exists() {
-        return Ok("Prefetch folder not found".into());
-    }
+    if !std::path::Path::new(path).exists() { return Ok("Prefetch folder not found".into()); }
     match delete_files_in_dir(path) {
         Ok(count) => Ok(format!("Cleaned {} Prefetch files", count)),
         Err(_) => Err("Access denied. Run as administrator to clean Prefetch.".into()),
@@ -208,17 +257,32 @@ fn run_disk_cleanup() -> Result<String, String> {
     Ok("Disk Cleanup launched".into())
 }
 
+#[tauri::command]
+fn check_winget() -> bool {
+    winget_cmd().arg("--version").output().is_ok_and(|o| o.status.success())
+}
+
+#[tauri::command]
+fn check_apps_installed(apps: Vec<String>) -> Vec<String> {
+    let output = winget_cmd()
+        .args(["list", "--accept-source-agreements"])
+        .output()
+        .ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).to_lowercase())
+        .unwrap_or_default();
+
+    apps.iter().map(|id| {
+        if output.contains(&id.to_lowercase()) { "installed".to_string() } else { "not_installed".to_string() }
+    }).collect()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
+                app.handle().plugin(tauri_plugin_log::Builder::default().level(log::LevelFilter::Info).build())?;
             }
             Ok(())
         })
@@ -232,6 +296,10 @@ pub fn run() {
             clean_temp_files,
             clean_prefetch,
             run_disk_cleanup,
+            check_winget,
+            install_app,
+            uninstall_app,
+            check_apps_installed,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,0 +1,345 @@
+.install-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: #4a90d9;
+}
+
+.search-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.install-actions {
+  margin-bottom: 12px;
+}
+
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--card-header-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.sel-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 100px;
+}
+
+.action-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: var(--hover-bg);
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.install-selected-btn {
+  margin-left: auto;
+  padding: 7px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #28a745;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.install-selected-btn:hover:not(:disabled) {
+  background: #218838;
+}
+
+.install-selected-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.batch-progress {
+  margin-top: 8px;
+  padding: 8px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.batch-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.progress-track {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4a90d9;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.install-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.install-category {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card-bg);
+}
+
+.category-header {
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  background: var(--card-header-bg);
+}
+
+.category-header:hover {
+  background: var(--card-header-hover);
+}
+
+.category-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--badge-bg);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.category-apps {
+  border-top: 1px solid var(--border);
+}
+
+.app-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.app-item:last-child {
+  border-bottom: none;
+}
+
+.app-item:hover {
+  background: var(--hover-bg);
+}
+
+.app-item.installed {
+  background: rgba(40, 167, 69, 0.08);
+}
+
+.app-item.failed {
+  background: rgba(220, 53, 69, 0.08);
+}
+
+.app-check-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.app-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #4a90d9;
+  flex-shrink: 0;
+}
+
+.app-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.app-name {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.app-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.install-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #4a90d9;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.install-btn:hover:not(:disabled) {
+  background: #357abd;
+}
+
+.install-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.uninstall-selected-btn {
+  margin-left: 4px;
+  padding: 7px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.uninstall-selected-btn:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.uninstall-selected-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.uninstall-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.uninstall-btn:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.uninstall-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.installing-spinner {
+  display: inline-block;
+  font-size: 18px;
+  color: #4a90d9;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.status-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.status-tag.installed {
+  background: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+}
+
+.app-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.upgrade-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #ffc107;
+  color: #000;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.upgrade-btn:hover:not(:disabled) {
+  background: #e0a800;
+}
+
+.upgrade-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

@@ -24,6 +24,11 @@
   --warning: #f59e0b;
   --btn-bg: #1a1a2e;
   --btn-text: #ffffff;
+  --badge-bg: #e8e8f0;
+  --hover-bg: #f8f8ff;
+  --card-header-bg: #f8f8fc;
+  --card-header-hover: #f0f0f8;
+  --input-bg: #ffffff;
 }
 
 [data-theme="dark"] {
@@ -37,6 +42,11 @@
   --card-shadow: rgba(0, 0, 0, 0.3);
   --btn-bg: #e2e8f0;
   --btn-text: #1a1a2e;
+  --badge-bg: #2d2d4a;
+  --hover-bg: #1e1e34;
+  --card-header-bg: #1e1e34;
+  --card-header-hover: #252540;
+  --input-bg: #1a1a2e;
 }
 
 html, body, #root {
