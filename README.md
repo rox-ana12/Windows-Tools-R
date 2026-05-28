@@ -1,3 +1,5 @@
+![Total Downloads](https://img.shields.io/github/downloads/rox-ana12/Windows-Tools-R/total?style=plastic)
+
 # Windows Tools R
 
 A lightweight native Windows app that gives you quick access to system information and useful tweaks — no installation required (portable version available).
