@@ -6,6 +6,7 @@ use sysinfo::{Disks, System};
 use winreg::enums::*;
 use winreg::RegKey;
 use std::os::windows::process::CommandExt;
+use tauri::Emitter;
 
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
@@ -30,6 +31,14 @@ pub struct InstallResult {
     pub installed: bool,
 }
 
+#[derive(Clone, Serialize)]
+struct OperationEvent {
+    app_name: String,
+    action: String,
+    success: bool,
+    message: String,
+}
+
 fn winget_cmd() -> Command {
     let mut cmd = Command::new("winget");
     cmd.creation_flags(CREATE_NO_WINDOW);
@@ -37,52 +46,57 @@ fn winget_cmd() -> Command {
 }
 
 #[tauri::command]
-fn install_app(winget_id: String, app_name: String) -> InstallResult {
-    let result = winget_cmd()
-        .args([
-            "install", "--id", &winget_id, "-e", "-h",
-            "--accept-source-agreements", "--accept-package-agreements"
-        ])
-        .output();
-
-    match result {
-        Ok(out) => {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            let combined = format!("{}\n{}", stdout, stderr).to_lowercase();
-            let already_installed = combined.contains("0x8a150019") || combined.contains("already installed");
-
-            if out.status.success() || already_installed {
-                InstallResult {
-                    success: true,
-                    message: if already_installed { format!("{} already installed", app_name) } else { format!("{} installed", app_name) },
-                    installed: true,
-                }
-            } else {
-                InstallResult {
-                    success: false,
-                    message: format!("Install failed: {}", combined.trim()),
-                    installed: false,
-                }
+fn install_app(app_handle: tauri::AppHandle, winget_id: String, app_name: String) {
+    std::thread::spawn(move || {
+        let result = winget_cmd()
+            .args([
+                "install", "--id", &winget_id, "-e", "-h",
+                "--accept-source-agreements", "--accept-package-agreements"
+            ])
+            .output();
+        let (success, message) = match result {
+            Ok(out) => {
+                let stdout = String::from_utf8_lossy(&out.stdout);
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                let combined = format!("{}\n{}", stdout, stderr).to_lowercase();
+                let already = combined.contains("0x8a150019") || combined.contains("already installed");
+                (out.status.success() || already,
+                 if already { format!("{} already installed", app_name) } else { format!("{} installed", app_name) })
             }
-        }
-        Err(e) => InstallResult {
-            success: false,
-            message: format!("Error: {}", e),
-            installed: false,
-        },
-    }
+            Err(e) => (false, format!("Error: {}", e)),
+        };
+        let _ = app_handle.emit("operation-done", OperationEvent {
+            app_name, action: "install".into(), success, message,
+        });
+    });
 }
 
 #[tauri::command]
-fn uninstall_app(winget_id: String, app_name: String) -> InstallResult {
-    let _ = winget_cmd()
-        .args([
-            "uninstall", "--id", &winget_id, "-e",
-            "--accept-source-agreements"
-        ])
-        .output();
-    InstallResult { success: true, message: format!("{} uninstall launched", app_name), installed: true }
+fn uninstall_app(app_handle: tauri::AppHandle, winget_id: String, app_name: String) {
+    std::thread::spawn(move || {
+        let _ = winget_cmd()
+            .args([
+                "uninstall", "--id", &winget_id, "-e",
+                "--accept-source-agreements"
+            ])
+            .output();
+        std::thread::sleep(std::time::Duration::from_secs(10));
+        let check = winget_cmd()
+            .args(["list", "--id", &winget_id, "--accept-source-agreements"])
+            .output();
+        let still_installed = match check {
+            Ok(out) => String::from_utf8_lossy(&out.stdout).to_lowercase().contains(&winget_id.to_lowercase()),
+            Err(_) => true,
+        };
+        let (success, message) = if still_installed {
+            (false, format!("Uninstall may have failed: {}", app_name))
+        } else {
+            (true, format!("{} uninstalled", app_name))
+        };
+        let _ = app_handle.emit("operation-done", OperationEvent {
+            app_name, action: "uninstall".into(), success, message,
+        });
+    });
 }
 
 #[tauri::command]

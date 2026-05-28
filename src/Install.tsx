@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import "./Install.css";
 
 interface AppItem {
@@ -9,10 +11,11 @@ interface AppItem {
   desc: string;
 }
 
-interface InstallResult {
+interface OperationEvent {
+  app_name: string;
+  action: string;
   success: boolean;
   message: string;
-  installed: boolean;
 }
 
 const APP_CATALOG: AppItem[] = [
@@ -201,6 +204,9 @@ function Install() {
   const [statuses, setStatuses] = useState<Record<string, { installing: boolean; msg: string; success?: boolean }>>({});
   const [batchRunning, setBatchRunning] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ current: 0, total: 0, appName: "", action: "" as "install" | "uninstall" | "" });
+  const [batchMessage, setBatchMessage] = useState<string | null>(null);
+  const [pendingOps, setPendingOps] = useState(0);
+  const pendingOpsRef = useRef(0);
 
   useEffect(() => {
     invoke<boolean>("check_winget").then(setWingetAvailable);
@@ -228,6 +234,26 @@ function Install() {
     if (wingetAvailable) checkInstalled();
   }, [wingetAvailable, checkInstalled]);
 
+  useEffect(() => {
+    const unlisten = listen<OperationEvent>("operation-done", (event) => {
+      const { app_name, success, message } = event.payload;
+      setStatuses((prev) => ({ ...prev, [app_name]: { installing: false, msg: success ? "Installed" : message, success } }));
+      setPendingOps((prev) => Math.max(0, prev - 1));
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
+
+  useEffect(() => {
+    if (!batchRunning || pendingOps > 0) return;
+    (async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      await checkInstalled();
+      getCurrentWindow().show();
+      setBatchRunning(false);
+      setSelected(new Set());
+    })();
+  }, [pendingOps, batchRunning, checkInstalled]);
+
   const toggleSelect = (wingetId: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -237,48 +263,56 @@ function Install() {
     });
   };
 
-  const uninstall = async (item: AppItem) => {
+  const uninstall = (item: AppItem) => {
     setStatuses((prev) => ({ ...prev, [item.name]: { installing: true, msg: "Uninstalling..." } }));
-    try {
-      await invoke<InstallResult>("uninstall_app", { wingetId: item.winget_id, appName: item.name });
-    } catch (_) { /* ignore */ }
+    invoke("uninstall_app", { wingetId: item.winget_id, appName: item.name });
     setSelected((prev) => { const next = new Set(prev); next.delete(item.winget_id); return next; });
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-    await checkInstalled();
   };
 
-  const installSelected = async () => {
-    const apps = filtered.filter((a) => selected.has(a.winget_id));
-    if (apps.length === 0) return;
+  const installSelected = () => {
+    const selectedApps = filtered.filter((a) => selected.has(a.winget_id));
+    if (selectedApps.length === 0) return;
+    const alreadyInstalled = selectedApps.filter((a) => statuses[a.name]?.success);
+    const toInstall = selectedApps.filter((a) => !statuses[a.name]?.success);
+    if (toInstall.length === 0) {
+      setBatchMessage("All selected apps are already installed.");
+      return;
+    }
     setBatchRunning(true);
-    setBatchProgress({ current: 0, total: apps.length, appName: "", action: "install" });
-    for (let i = 0; i < apps.length; i++) {
-      const app = apps[i];
-      setBatchProgress({ current: i + 1, total: apps.length, appName: app.name, action: "install" });
+    pendingOpsRef.current = toInstall.length;
+    setPendingOps(toInstall.length);
+    setBatchProgress({ current: 0, total: toInstall.length, appName: "", action: "install" });
+    for (const app of toInstall) {
       setStatuses((prev) => ({ ...prev, [app.name]: { installing: true, msg: "Installing..." } }));
-      try { await invoke<InstallResult>("install_app", { wingetId: app.winget_id, appName: app.name }); } catch (_) { /* ignore */ }
+      invoke("install_app", { wingetId: app.winget_id, appName: app.name });
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await checkInstalled();
-    setBatchRunning(false);
-    setSelected(new Set());
+    if (alreadyInstalled.length > 0) {
+      const names = alreadyInstalled.map((a) => a.name).join(", ");
+      setBatchMessage(`Skipped already installed: ${names}`);
+    }
   };
 
-  const uninstallSelected = async () => {
-    const apps = filtered.filter((a) => selected.has(a.winget_id) && statuses[a.name]?.success);
-    if (apps.length === 0) return;
-    setBatchRunning(true);
-    setBatchProgress({ current: 0, total: apps.length, appName: "", action: "uninstall" });
-    for (let i = 0; i < apps.length; i++) {
-      const app = apps[i];
-      setBatchProgress({ current: i + 1, total: apps.length, appName: app.name, action: "uninstall" });
-      setStatuses((prev) => ({ ...prev, [app.name]: { installing: true, msg: "Uninstalling..." } }));
-      try { await invoke<InstallResult>("uninstall_app", { wingetId: app.winget_id, appName: app.name }); } catch (_) { /* ignore */ }
+  const uninstallSelected = () => {
+    const selectedApps = filtered.filter((a) => selected.has(a.winget_id));
+    if (selectedApps.length === 0) return;
+    const toUninstall = selectedApps.filter((a) => statuses[a.name]?.success);
+    const notInstalled = selectedApps.filter((a) => !statuses[a.name]?.success);
+    if (toUninstall.length === 0) {
+      setBatchMessage("None of the selected apps are installed.");
+      return;
     }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await checkInstalled();
-    setBatchRunning(false);
-    setSelected(new Set());
+    setBatchRunning(true);
+    pendingOpsRef.current = toUninstall.length;
+    setPendingOps(toUninstall.length);
+    setBatchProgress({ current: 0, total: toUninstall.length, appName: "", action: "uninstall" });
+    for (const app of toUninstall) {
+      setStatuses((prev) => ({ ...prev, [app.name]: { installing: true, msg: "Uninstalling..." } }));
+      invoke("uninstall_app", { wingetId: app.winget_id, appName: app.name });
+    }
+    if (notInstalled.length > 0) {
+      const names = notInstalled.map((a) => a.name).join(", ");
+      setBatchMessage(`Skipped not installed: ${names}`);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -338,24 +372,30 @@ function Install() {
           <button className="action-btn" onClick={() => setSelected(new Set(filtered.map((a) => a.winget_id)))} disabled={batchRunning}>Select All</button>
           <button className="action-btn" onClick={() => setSelected(new Set())} disabled={batchRunning}>Clear</button>
           <button className="install-selected-btn" onClick={installSelected} disabled={selCount === 0 || batchRunning}>
-            {batchRunning && batchProgress.action === "install" ? `Installing ${batchProgress.current}/${batchProgress.total}...` : `Install Selected (${selCount})`}
+            {batchRunning && batchProgress.action === "install" ? `Installing ${batchProgress.total - pendingOps}/${batchProgress.total}...` : `Install Selected (${selCount})`}
           </button>
           <button className="uninstall-selected-btn" onClick={uninstallSelected} disabled={selCount === 0 || batchRunning}>
-            {batchRunning && batchProgress.action === "uninstall" ? `Uninstalling ${batchProgress.current}/${batchProgress.total}...` : `Uninstall Selected (${selCount})`}
+            {batchRunning && batchProgress.action === "uninstall" ? `Uninstalling ${batchProgress.total - pendingOps}/${batchProgress.total}...` : `Uninstall Selected (${selCount})`}
           </button>
         </div>
         {batchRunning && (
           <div className="batch-progress">
             <div className="batch-info">
-              {batchProgress.action === "install" ? "Installing" : "Uninstalling"} {batchProgress.appName} ({batchProgress.current}/{batchProgress.total})
+              {batchProgress.action === "install" ? "Installing" : "Uninstalling"} {batchProgress.total - pendingOps}/{batchProgress.total}
             </div>
             <div className="progress-track">
-              <div className="progress-fill" style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }} />
+              <div className="progress-fill" style={{ width: `${((batchProgress.total - pendingOps) / batchProgress.total) * 100}%` }} />
             </div>
           </div>
         )}
       </div>
 
+      {batchMessage && (
+        <div className="batch-notification">
+          <span>{batchMessage}</span>
+          <button className="notification-close" onClick={() => setBatchMessage(null)}>×</button>
+        </div>
+      )}
       <div className="install-catalog">
         {Object.entries(grouped).map(([category, apps]) => (
           <details key={category} className="install-category" open>
@@ -396,7 +436,9 @@ function Install() {
                         </>
                       ) : st ? (
                         <span className="status-tag failed">✗ {st.msg}</span>
-                      ) : null}
+                      ) : (
+                        <span className="status-tag loading">⟳ Loading...</span>
+                      )}
                     </div>
                   </div>
                 );
