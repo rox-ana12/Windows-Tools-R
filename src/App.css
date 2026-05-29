@@ -75,9 +75,10 @@
 }
 
 .main-area {
-  flex: 1;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   background: var(--bg-primary);
 }
@@ -114,11 +115,12 @@
 
 .main-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
 .page-content {
-  padding: 32px;
+  padding: clamp(12px, 3vh, 32px);
 }
 
 .page-title {

@@ -1,7 +1,7 @@
 {
   "name": "windows-tools",
   "private": true,
-  "version": "0.1.7",
+  "version": "0.1.8",
   "type": "module",
   "scripts": {
     "sync-version": "powershell -NoProfile -ExecutionPolicy Bypass -File sync-version.ps1",

@@ -1,0 +1,106 @@
+.gauges-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.gauge-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px var(--card-shadow);
+}
+
+.gauge-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.gauge-bar-track {
+  height: 12px;
+  background: var(--bg-primary);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.gauge-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+.gauge-value {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.gauge-pct {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.gauge-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.sparkline-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px var(--card-shadow);
+}
+
+.sparkline-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.sparkline-current {
+  color: var(--monitor-cpu);
+}
+
+.sparkline-canvas {
+  width: 100%;
+  height: 120px;
+  border-radius: 6px;
+}
+
+.battery-card {
+  max-width: 500px;
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+:root {
+  --monitor-cpu: #4fc3f7;
+  --monitor-memory: #81c784;
+  --monitor-disk: #ffb74d;
+  --monitor-battery: #64b5f6;
+}
+
+@media (max-width: 800px) {
+  .gauges-grid {
+    grid-template-columns: 1fr;
+  }
+}
